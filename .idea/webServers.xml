@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="72887edb-4f46-4b6c-a9fa-4e47c4e188a8" name="paras-cluster">
+        <fileTransfer rootFolder="/home/ljiang/HBFPEmulator" accessType="SFTP" host="M001517A276FC.dyn.epfl.ch" port="22" sshConfigId="854c0a8e-775d-41f8-bbe9-3f897384723f" sshConfig="ljiang@M001517A276FC.dyn.epfl.ch:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

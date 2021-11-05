@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="M001517A276FC.dyn.epfl.ch" id="854c0a8e-775d-41f8-bbe9-3f897384723f" port="22" nameFormat="DESCRIPTIVE" username="ljiang" />
+    </configs>
+  </component>
+</project>

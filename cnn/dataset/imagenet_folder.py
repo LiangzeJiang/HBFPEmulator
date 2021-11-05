@@ -38,7 +38,7 @@ from PIL import Image
 
 import torch.utils.data as data
 import torchvision.datasets as datasets
-import tensorpack.utils.serialize as serialize
+# import tensorpack.utils.serialize as serialize
 
 from cnn.utils.log import log
 from cnn.dataset.preprocess_toolkit import get_transform
@@ -164,65 +164,65 @@ class IMDBPT(data.Dataset):
         return fmt_str
 
 
-class LMDBPTClass(data.Dataset):
-    def __init__(self, root, transform=None, target_transform=None):
-        self.root = os.path.expanduser(root)
-        self.transform = transform
-        self.target_transform = target_transform
-
-        # open lmdb env.
-        self.env = self._open_lmdb()
-
-        # get file stats.
-        self._get_length()
-
-        # prepare cache_file
-        self._prepare_cache()
-
-    def _open_lmdb(self):
-        return lmdb.open(
-            self.root,
-            subdir=os.path.isdir(self.root),
-            readonly=True, lock=False, readahead=False,
-            map_size=1099511627776 * 2, max_readers=1, meminit=False)
-
-    def _get_length(self):
-        with self.env.begin(write=False) as txn:
-            self.length = txn.stat()['entries']
-
-            if txn.get(b'__keys__') is not None:
-                self.length -= 1
-
-    def _prepare_cache(self):
-        cache_file = self.root + '_cache_'
-        if os.path.isfile(cache_file):
-            self.keys = pickle.load(open(cache_file, "rb"))
-        else:
-            with self.env.begin(write=False) as txn:
-                self.keys = [key
-                             for key, _ in txn.cursor() if key != b'__keys__']
-            pickle.dump(self.keys, open(cache_file, "wb"))
-
-    def _image_decode(self, x):
-        image = cv2.imdecode(x, cv2.IMREAD_COLOR).astype('uint8')
-        return Image.fromarray(image, 'RGB')
-
-    def __getitem__(self, index):
-        env = self.env
-        with env.begin(write=False) as txn:
-            bin_file = txn.get(self.keys[index])
-
-        image, target = serialize.loads(bin_file)
-        image = self._image_decode(image)
-
-        if self.transform is not None:
-            image = self.transform(image)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-        return image, target
-
-    def __len__(self):
-        return self.length
-
-    def __repr__(self):
-        return self.__class__.__name__ + ' (' + self.root + ')'
+# class LMDBPTClass(data.Dataset):
+#     def __init__(self, root, transform=None, target_transform=None):
+#         self.root = os.path.expanduser(root)
+#         self.transform = transform
+#         self.target_transform = target_transform
+#
+#         # open lmdb env.
+#         self.env = self._open_lmdb()
+#
+#         # get file stats.
+#         self._get_length()
+#
+#         # prepare cache_file
+#         self._prepare_cache()
+#
+#     def _open_lmdb(self):
+#         return lmdb.open(
+#             self.root,
+#             subdir=os.path.isdir(self.root),
+#             readonly=True, lock=False, readahead=False,
+#             map_size=1099511627776 * 2, max_readers=1, meminit=False)
+#
+#     def _get_length(self):
+#         with self.env.begin(write=False) as txn:
+#             self.length = txn.stat()['entries']
+#
+#             if txn.get(b'__keys__') is not None:
+#                 self.length -= 1
+#
+#     def _prepare_cache(self):
+#         cache_file = self.root + '_cache_'
+#         if os.path.isfile(cache_file):
+#             self.keys = pickle.load(open(cache_file, "rb"))
+#         else:
+#             with self.env.begin(write=False) as txn:
+#                 self.keys = [key
+#                              for key, _ in txn.cursor() if key != b'__keys__']
+#             pickle.dump(self.keys, open(cache_file, "wb"))
+#
+#     def _image_decode(self, x):
+#         image = cv2.imdecode(x, cv2.IMREAD_COLOR).astype('uint8')
+#         return Image.fromarray(image, 'RGB')
+#
+#     def __getitem__(self, index):
+#         env = self.env
+#         with env.begin(write=False) as txn:
+#             bin_file = txn.get(self.keys[index])
+#
+#         image, target = serialize.loads(bin_file)
+#         image = self._image_decode(image)
+#
+#         if self.transform is not None:
+#             image = self.transform(image)
+#         if self.target_transform is not None:
+#             target = self.target_transform(target)
+#         return image, target
+#
+#     def __len__(self):
+#         return self.length
+#
+#     def __repr__(self):
+#         return self.__class__.__name__ + ' (' + self.root + ')'

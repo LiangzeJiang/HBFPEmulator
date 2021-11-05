@@ -57,7 +57,9 @@ def tutorial_args():
     parser.add_argument('--rounding_mode', default='stoc', type=str,
                         help='Rounding mode for bfp')
     parser.add_argument('--mant_bits', default=8, type=int,
-                        help='Mantissa bits for bfp')
+                        help='Mantissa bits for bfp (forward propagation)')
+    parser.add_argument('--mant_bits_bp', default=4, type=int,
+                        help='Mantissa bits for bfp (backward propagation)')
     parser.add_argument('--bfp_tile_size', default=0, type=int,
                         help='Tile size if using tiled bfp. 0 disables tiling')
     parser.add_argument('--weight_mant_bits', default=0, type=int,
