@@ -63,21 +63,24 @@ import torch.optim as optim
 from tqdm import tqdm, trange
 
 PATH = './cifar_net.pth'
+LOG_PATH = './log/'
 
 # 1. Load and normalizing the CIFAR10 training and test datasets using ``torchvision``
 def prepare_data():
+    batch_size = 32
+    print("batch_size=", batch_size)
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                             download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=2)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                            download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=4,
+    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                              shuffle=False, num_workers=2)
 
     classes = ('plane', 'car', 'bird', 'cat',
@@ -192,7 +195,11 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
         weight_mant_bits=args.weight_mant_bits,
         device=args.device)
 
-    for epoch in trange(2, desc='epoch'):
+    num_epochs = 4
+    print_log = 100
+    loss_log = []
+    print("Training for " + str(num_epochs) + " epochs.....")
+    for epoch in trange(num_epochs, desc='epoch'):
         pass
         running_loss = 0.0
         for i, data in enumerate(tqdm(trainloader, desc='iteration'), 0):
@@ -205,11 +212,16 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
             optimizer.step()
             running_loss += loss.item()
 
-            if i % 2000 == 1999:    # print every 2000 mini-batches
-                tqdm.write('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 2000))
+            if i % print_log == print_log - 1:    # print every "print_log" mini-batches
+                ave_loss = running_loss / print_log
+                loss_log.append(ave_loss)
+                tqdm.write('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, ave_loss))
                 running_loss = 0.0
     print('Finished Training')
 
+    with open(LOG_PATH + "loss_" + str(args.mant_bits) + "_" + str(args.mant_bits_bp) + ".txt", 'w') as f:
+        for loss in loss_log:
+            f.write(str(loss)+'\n')
 
     torch.save(net.state_dict(), PATH)
 
@@ -264,6 +276,7 @@ def test_model(net, trainset, trainloader, testset, testloader, classes, args):
             classes[i], 100 * class_correct[i] / class_total[i]))
 
 def resnet18_cifar10(args):
+    print("current hyperparameters", args)
     trainset, trainloader, testset, testloader, classes = prepare_data()
     net = ResNet18(args)
     train(net, trainset, trainloader, testset, testloader, classes, args)

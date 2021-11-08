@@ -269,7 +269,7 @@ def unpack_bfp_args(kwargs):
                 ('rounding_mode', 'stoc'),
                 ('epsilon', 1e-8),
                 ('mant_bits', 0),
-                ('mant_bits_bp', 4),
+                ('mant_bits_bp', 0),
                 ('bfp_tile_size', 0),
                 ('weight_mant_bits', 0),
                 ('device', 'cpu')]

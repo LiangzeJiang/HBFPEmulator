@@ -216,7 +216,7 @@ def get_lstm_args():
     parser.add_argument('--nonmono', type=int, default=5,
                         help='random seed')
     parser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'gpu'])
-    parser.add_argument('--log-interval', type=int, default=200, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='report interval')
     randomhash = ''.join(str(time.time()).split('.'))
     parser.add_argument('--save', type=str,  default=randomhash+'.pt',
@@ -239,7 +239,9 @@ def get_lstm_args():
     parser.add_argument('--rounding_mode', default='stoc', type=str,
                         help='Rounding mode for bfp')
     parser.add_argument('--mant_bits', default=8, type=int,
-                        help='Mantissa bits for bfp')
+                        help='Mantissa bits for bfp (forward)')
+    parser.add_argument('--mant_bits_bp', default=8, type=int,
+                        help='Mantissa bits for bfp (backward)')
     parser.add_argument('--bfp_tile_size', default=0, type=int,
                         help='Tile size if using tiled bfp. 0 disables tiling')
     parser.add_argument('--bfp_symmetric', type=str2bool, default=False)

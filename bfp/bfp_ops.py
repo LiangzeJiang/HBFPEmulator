@@ -87,13 +87,13 @@ def _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device, exp_given=None):
     # To ensure that we preserve the interval
     t = t/interval
     rounded = round_tensor(t, rounding_mode, device)
-    rounded *=  interval
+    rounded *= interval
 
     #To ensure that there is no underflow or overflow
     return torch.min(torch.max(rounded, -max_v), max_v)
 
 
-def float_to_bfp_batched(t, mant_bits, epsilon, rounding_mode, device, bfp_tile_size=25,
+def float_to_bfp_batched(t, mant_bits, mant_bits_bp, epsilon, rounding_mode, device, backward=False, bfp_tile_size=25,
                          num_format='', weight_mant_bits=''):
     """
     Convert a batch of fp32 tensor t to bfp
@@ -102,7 +102,12 @@ def float_to_bfp_batched(t, mant_bits, epsilon, rounding_mode, device, bfp_tile_
     orig_shape = t.size()
 
     t = t.view(t.size()[0], -1)
-    o = _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device)
+    # add a backward boolean to indicate different mantissa bits
+    if not backward:
+        o = _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device)
+    else:
+        # print(mant_bits_bp)
+        o = _float_to_bfp(t, mant_bits_bp, epsilon, rounding_mode, device)
     return o.view(orig_shape)
 
 
@@ -151,7 +156,7 @@ def tiled_to_tensor(t, orig_shape, bfp_tile_size,
     return t.narrow(0, 0, matrix_h).narrow(1, 0, matrix_w).view(orig_shape)
 
 
-def float_to_bfp_tiled(t, mant_bits, epsilon, rounding_mode, device, bfp_tile_size=25,
+def float_to_bfp_tiled(t, mant_bits, mant_bits_bp, epsilon, rounding_mode, device, bfp_tile_size=25,
                        num_format='', weight_mant_bits=0,
                        sgd_update=False, mant_bits_pow=None):
     """
@@ -168,7 +173,7 @@ def float_to_bfp_tiled(t, mant_bits, epsilon, rounding_mode, device, bfp_tile_si
         return _float_to_bfp(t.view(1, -1), mant_bits, epsilon, rounding_mode, device).view(orig_shape)
 
     (t, numberOf_h_tiles, numberOf_w_tiles, matrix_h, matrix_w,
-        matrix_h_pad, matrix_w_pad) = tensor_to_tiled(t, orig_shape, bfp_tile_size)
+     matrix_h_pad, matrix_w_pad) = tensor_to_tiled(t, orig_shape, bfp_tile_size)
 
     t = _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device)
 
@@ -177,11 +182,11 @@ def float_to_bfp_tiled(t, mant_bits, epsilon, rounding_mode, device, bfp_tile_si
                            matrix_h, matrix_w,
                            matrix_h_pad, matrix_w_pad)
 
-def _get_op_name(name, epsilon, mant_bits, rounding_mode, **kwargs):
+def _get_op_name(name, epsilon, mant_bits, rounding_mode, mant_bits_bp, **kwargs):
     """
     Returns the operation's name that is performed in BFP format
     """
-    return  '%s_BFP_%s_%d' % (name, rounding_mode, mant_bits)
+    return '%s_BFP_%s_%d_%d' % (name, rounding_mode, mant_bits, mant_bits_bp)
 
 def _gen_bfp_op(op, name, bfp_args):
     """
@@ -211,7 +216,7 @@ def _gen_bfp_op(op, name, bfp_args):
     class NewOpIn(torch.autograd.Function):
         @staticmethod
         def forward(ctx, x, w):
-            return (float_to_bfp_batched(x, **bfp_args), w)
+            return (float_to_bfp_batched(x, backward=False, **bfp_args), w)
 
         @staticmethod
         def backward(ctx, grad_x, grad_w):
@@ -227,7 +232,7 @@ def _gen_bfp_op(op, name, bfp_args):
 
         @staticmethod
         def backward(ctx, op_out_grad):
-            return float_to_bfp_batched(op_out_grad, **bfp_args)
+            return float_to_bfp_batched(op_out_grad, backward=True, **bfp_args)
 
     NewOpOut.__name__ = name + '_Out'
     new_op_out = NewOpOut.apply
@@ -264,6 +269,7 @@ def unpack_bfp_args(kwargs):
                 ('rounding_mode', 'stoc'),
                 ('epsilon', 1e-8),
                 ('mant_bits', 0),
+                ('mant_bits_bp', 0),
                 ('bfp_tile_size', 0),
                 ('weight_mant_bits', 0),
                 ('device', 'cpu')]
