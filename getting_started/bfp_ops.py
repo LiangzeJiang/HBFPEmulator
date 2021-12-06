@@ -106,7 +106,6 @@ def float_to_bfp_batched(t, mant_bits, mant_bits_bp, epsilon, rounding_mode, dev
     if not backward:
         o = _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device)
     else:
-        # print(mant_bits_bp)
         o = _float_to_bfp(t, mant_bits_bp, epsilon, rounding_mode, device)
     return o.view(orig_shape)
 

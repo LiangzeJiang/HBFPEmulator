@@ -195,7 +195,7 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
         weight_mant_bits=args.weight_mant_bits,
         device=args.device)
 
-    num_epochs = 4
+    num_epochs = 2
     print_log = 100
     loss_log = []
     print("Training for " + str(num_epochs) + " epochs.....")
@@ -219,7 +219,7 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
                 running_loss = 0.0
     print('Finished Training')
 
-    with open(LOG_PATH + "loss_" + str(args.mant_bits) + "_" + str(args.mant_bits_bp) + ".txt", 'w') as f:
+    with open(LOG_PATH + "loss_" + str(args.mant_bits) + "_" + str(args.mant_bits_bp) + "_" + str(args.weight_mant_bits) + ".txt", 'w') as f:
         for loss in loss_log:
             f.write(str(loss)+'\n')
 
@@ -253,6 +253,9 @@ def test_model(net, trainset, trainloader, testset, testloader, classes, args):
             correct += (predicted == labels).sum().item()
     print('The accuracy of the network on the 10000 test images: %d %%' % (
         100 * correct / total))
+
+    with open(LOG_PATH + "loss_" + str(args.mant_bits) + "_" + str(args.mant_bits_bp) + "_" + str(args.weight_mant_bits) + ".txt", 'a+') as f:
+        f.write(str(100 * correct / total)+'\n')
 
     # What are the classes that performed well
     class_correct = list(0. for i in range(10))
