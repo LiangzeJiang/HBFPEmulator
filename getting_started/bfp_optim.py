@@ -54,6 +54,9 @@ def _gen_bfp_optim(optim, name):
                 for p in group['params']:
                     if p.grad is None:
                         continue
+                    else:
+                        if "scaling_factor" in kwargs.keys():
+                            p.grad = p.grad / kwargs["scaling_factor"]
                     state = self.state[p]
                     # Init step, just constraint pdata
                     if 'shadow_p' not in state:

@@ -61,17 +61,24 @@ from .bfp_ops import BFPLinear, BFPConv2d, unpack_bfp_args
 from .bfp_optim import get_bfp_optim
 import torch.optim as optim
 from tqdm import tqdm, trange
+from .utils import get_log_path
 
 PATH = './cifar_net.pth'
 LOG_PATH = './log/'
 
 # 1. Load and normalizing the CIFAR10 training and test datasets using ``torchvision``
 def prepare_data():
-    batch_size = 32
+    batch_size = 128
     print("batch_size=", batch_size)
-    transform = transforms.Compose(
-        [transforms.ToTensor(),
-         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    # transform = transforms.Compose(
+    #     [transforms.ToTensor(),
+    #      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                             download=True, transform=transform)
@@ -98,6 +105,7 @@ class BasicBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = BFPConv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False, **bfp_args)
         self.bn2 = nn.BatchNorm2d(planes)
+        # self.dropout = nn.Dropout2d(p=0.2)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -109,33 +117,7 @@ class BasicBlock(nn.Module):
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
-        out += self.shortcut(x)
-        out = F.relu(out)
-        return out
-
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(self, in_planes, planes, stride=1, bfp_args={}):
-        super(Bottleneck, self).__init__()
-        self.conv1 = BFPConv2d(in_planes, planes, kernel_size=1, bias=False, **bfp_args)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = BFPConv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False, **bfp_args)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.conv3 = BFPConv2d(planes, self.expansion*planes, kernel_size=1, bias=False, **bfp_args)
-        self.bn3 = nn.BatchNorm2d(self.expansion*planes)
-
-        self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != self.expansion*planes:
-            self.shortcut = nn.Sequential(
-                BFPConv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False, **bfp_args),
-                nn.BatchNorm2d(self.expansion*planes)
-            )
-
-    def forward(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = F.relu(self.bn2(self.conv2(out)))
-        out = self.bn3(self.conv3(out))
+        # out = self.dropout(out)
         out += self.shortcut(x)
         out = F.relu(out)
         return out
@@ -189,13 +171,13 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
     BFPSGD = get_bfp_optim(optim.SGD, "SGD")
     optimizer = BFPSGD(
             net.parameters(),
-            lr=0.001, momentum=0.9,
+            lr=0.01, momentum=0.9,  weight_decay=5e-4,
         num_format=args.num_format,
         mant_bits=args.mant_bits,
         weight_mant_bits=args.weight_mant_bits,
         device=args.device)
 
-    num_epochs = 2
+    num_epochs = args.training_epochs
     print_log = 100
     loss_log = []
     print("Training for " + str(num_epochs) + " epochs.....")
@@ -208,8 +190,16 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
             optimizer.zero_grad()
             outputs = net(inputs)
             loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+            # in case we do loss scaling.
+            if args.loss_scaling_scheme != "None":
+                curr_scaling_factor = args.init_scaling_factor
+                # only for naive loss scaling now
+                scaled_loss = loss * curr_scaling_factor
+                scaled_loss.backward()
+                optimizer.step(scaling_factor=curr_scaling_factor)
+            else:
+                loss.backward()
+                optimizer.step()
             running_loss += loss.item()
 
             if i % print_log == print_log - 1:    # print every "print_log" mini-batches
@@ -219,7 +209,8 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
                 running_loss = 0.0
     print('Finished Training')
 
-    with open(LOG_PATH + "loss_" + str(args.mant_bits) + "_" + str(args.mant_bits_bp) + "_" + str(args.weight_mant_bits) + ".txt", 'w') as f:
+    file_name = get_log_path(args)
+    with open(file_name, 'w') as f:
         for loss in loss_log:
             f.write(str(loss)+'\n')
 
@@ -254,7 +245,8 @@ def test_model(net, trainset, trainloader, testset, testloader, classes, args):
     print('The accuracy of the network on the 10000 test images: %d %%' % (
         100 * correct / total))
 
-    with open(LOG_PATH + "loss_" + str(args.mant_bits) + "_" + str(args.mant_bits_bp) + "_" + str(args.weight_mant_bits) + ".txt", 'a+') as f:
+    file_name = get_log_path(args)
+    with open(file_name, 'a+') as f:
         f.write(str(100 * correct / total)+'\n')
 
     # What are the classes that performed well
@@ -284,3 +276,4 @@ def resnet18_cifar10(args):
     net = ResNet18(args)
     train(net, trainset, trainloader, testset, testloader, classes, args)
     test_model(net, trainset, trainloader, testset, testloader, classes, args)
+

@@ -52,6 +52,7 @@ def tutorial_args():
     parser = argparse.ArgumentParser(
         description='Getting Started')
     parser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'gpu'])
+    parser.add_argument('--training_epochs', type=int, default=10)
     parser.add_argument('--num_format', default='fp32', type=str,
                         help='number format for fully connected and convolutional layers')
     parser.add_argument('--rounding_mode', default='stoc', type=str,
@@ -64,6 +65,10 @@ def tutorial_args():
                         help='Tile size if using tiled bfp. 0 disables tiling')
     parser.add_argument('--weight_mant_bits', default=0, type=int,
                         help='Mantissa bits for weights bfp')
+    parser.add_argument('--loss_scaling_scheme', default="None", type=str, choices=["None", "Naive", "Backoff"],
+                        help='Different loss scaling schemes, none indicates no loss scaling')
+    parser.add_argument('--init_scaling_factor', default=None, type=int,
+                        help='The initial loss scaling factor for both fixed and adapative case')
 
     # parse args.
     args, unknown = parser.parse_known_args()
