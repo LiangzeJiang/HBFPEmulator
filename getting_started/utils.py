@@ -21,3 +21,9 @@ def get_log_path(args):
             else:
                 filename += str(args[attr])
     return filename + '.txt'
+
+def perf_parser(log_path):
+    pass
+
+def gradient_stat():
+    pass

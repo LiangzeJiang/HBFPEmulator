@@ -1,4 +1,4 @@
-declare -a training_epochs=20
+declare -a training_epochs=50
 
 # Pure Floating point
 python3 main.py \
@@ -44,7 +44,9 @@ python3 main.py \
   --bfp_tile_size 0 --weight_mant_bits 16 \
   --rounding_mode determ \
   --mant_bits 8 --mant_bits_bp 4 \
-  --training_epochs ${training_epochs}
+  --training_epochs ${training_epochs} \
+  --loss_scaling_scheme Naive \
+  --init_scaling_factor 1000
 
 # HBFP with loss scaling + stochastic rounding and 4-bit backward
 python3 main.py \
@@ -53,8 +55,8 @@ python3 main.py \
   --rounding_mode stoc \
   --mant_bits 8 --mant_bits_bp 4 \
   --training_epochs ${training_epochs} \
-  --loss_scaling_scheme None \
-  --init_scaling_factor None
+  --loss_scaling_scheme Naive \
+  --init_scaling_factor 1000
 
 # Other tests for backward bits
 python3 main.py \

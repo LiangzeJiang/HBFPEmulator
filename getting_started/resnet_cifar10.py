@@ -70,24 +70,25 @@ LOG_PATH = './log/'
 def prepare_data():
     batch_size = 128
     print("batch_size=", batch_size)
-    # transform = transforms.Compose(
-    #     [transforms.ToTensor(),
-    #      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    transform = transforms.Compose([
+    tr_transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
+    te_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=True, transform=transform)
+                                            download=True, transform=tr_transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=2)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                           download=True, transform=te_transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=100,
                                              shuffle=False, num_workers=2)
 
     classes = ('plane', 'car', 'bird', 'cat',
@@ -105,7 +106,6 @@ class BasicBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = BFPConv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False, **bfp_args)
         self.bn2 = nn.BatchNorm2d(planes)
-        # self.dropout = nn.Dropout2d(p=0.2)
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
@@ -117,7 +117,6 @@ class BasicBlock(nn.Module):
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
         out = self.bn2(self.conv2(out))
-        # out = self.dropout(out)
         out += self.shortcut(x)
         out = F.relu(out)
         return out

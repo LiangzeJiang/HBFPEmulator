@@ -66,11 +66,11 @@ def get_exponent(t, epsilon):
     Find the shared exponent of the tensor t.
     The exponent of the largest tensor value is selected as the shared exponent.
     """
-    #Exponent is independent of the sign
+    # Exponent is independent of the sign
     t = t.abs()
-    #Find the maximum element of the tensor t
+    # Find the maximum element of the tensor t
     max_v, _ = t.max(dim=1, keepdim=True)
-    #Get the exponent of that element (We use ceil because in bfp format, we convert using 0.mantissa_bits instead of fp32's 1.mantissa_bits)
+    # Get the exponent of that element (We use ceil because in bfp format, we convert using 0.mantissa_bits instead of fp32's 1.mantissa_bits)
     return (max_v + epsilon).log2().ceil()
 
 def _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device, exp_given=None):
@@ -79,9 +79,9 @@ def _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device, exp_given=None):
     """
     exp = get_exponent(t, epsilon)
 
-    #The interval between two consecutive numbers with that exponent value
+    # The interval between two consecutive numbers with that exponent value
     interval = torch.pow(2.0, exp-mant_bits)
-    #The maximum representable value with exp
+    # The maximum representable value with exp
     max_v = torch.pow(2.0, exp) - interval
 
     # To ensure that we preserve the interval
@@ -89,7 +89,7 @@ def _float_to_bfp(t, mant_bits, epsilon, rounding_mode, device, exp_given=None):
     rounded = round_tensor(t, rounding_mode, device)
     rounded *= interval
 
-    #To ensure that there is no underflow or overflow
+    # To ensure that there is no underflow or overflow
     return torch.min(torch.max(rounded, -max_v), max_v)
 
 
