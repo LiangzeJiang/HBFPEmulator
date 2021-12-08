@@ -45,7 +45,7 @@ def _gen_bfp_optim(optim, name):
             self.bfp_args = unpack_bfp_args(kwargs)
             super().__init__(*args, **kwargs)
 
-        def step(self, *args, **kwargs):
+        def step(self, scaling_factor=1, *args, **kwargs):
             if self.bfp_args['num_format'] == 'fp32':
                 return super().step(*args, **kwargs)
 
@@ -55,8 +55,7 @@ def _gen_bfp_optim(optim, name):
                     if p.grad is None:
                         continue
                     else:
-                        if "scaling_factor" in kwargs.keys():
-                            p.grad = p.grad / kwargs["scaling_factor"]
+                        p.grad = p.grad / scaling_factor
                     state = self.state[p]
                     # Init step, just constraint pdata
                     if 'shadow_p' not in state:
