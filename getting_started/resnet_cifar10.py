@@ -170,7 +170,7 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
     BFPSGD = get_bfp_optim(optim.SGD, "SGD")
     optimizer = BFPSGD(
             net.parameters(),
-            lr=0.01, momentum=0.9,  weight_decay=5e-4,
+            lr=0.05, momentum=0.9,  weight_decay=5e-4,
         num_format=args.num_format,
         mant_bits=args.mant_bits,
         weight_mant_bits=args.weight_mant_bits,

@@ -61,7 +61,7 @@ def tutorial_args():
                         help='Mantissa bits for bfp (forward propagation)')
     parser.add_argument('--mant_bits_bp', default=8, type=int,
                         help='Mantissa bits for bfp (backward propagation)')
-    parser.add_argument('--bfp_tile_size', default=0, type=int,
+    parser.add_argument('--bfp_tile_size', default=24, type=int,
                         help='Tile size if using tiled bfp. 0 disables tiling')
     parser.add_argument('--weight_mant_bits', default=16, type=int,
                         help='Mantissa bits for weights bfp')
