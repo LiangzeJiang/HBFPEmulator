@@ -43,8 +43,8 @@ class rounding_modes:
     STOC: Stochastic rounding
     DETERM: Deterministic rounding
     """
-    STOC, DETERM = 'stoc', 'determ'
-    modes = [STOC, DETERM]
+    STOC, STOC1, DETERM = 'stoc', 'stoc1', 'determ'
+    modes = [STOC, STOC1, DETERM]
 
 def round_tensor(t, mode, device):
     """
@@ -56,6 +56,15 @@ def round_tensor(t, mode, device):
         else:
             sampled = torch.cuda.FloatTensor(t.size()).uniform_(-0.5, 0.5)
         return sampled.add_(t).round()
+    elif mode == rounding_modes.STOC1:
+        prob = t - t.floor()
+        if device == "cpu":
+            sampled = torch.FloatTensor(t.size(), device=device).uniform_(0, 1.0)
+        else:
+            sampled = torch.cuda.FloatTensor(t.size()).uniform_(0, 1.0)
+        t = torch.where(sampled < prob, t.ceil(), t.floor())
+        return t
+
     elif mode == rounding_modes.DETERM:
         return t.round()
     else:

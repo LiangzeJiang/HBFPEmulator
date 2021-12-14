@@ -61,7 +61,7 @@ from .bfp_ops import BFPLinear, BFPConv2d, unpack_bfp_args
 from .bfp_optim import get_bfp_optim
 import torch.optim as optim
 from tqdm import tqdm, trange
-from .utils import get_log_path
+from .utils import get_log_path, track_grad_stat
 
 PATH = './cifar_net.pth'
 LOG_PATH = './log/'
@@ -179,6 +179,7 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
     num_epochs = args.training_epochs
     print_log = 100
     loss_log = []
+    grad_stats = []
     print("Training for " + str(num_epochs) + " epochs.....")
     for epoch in trange(num_epochs, desc='epoch'):
         pass
@@ -195,9 +196,15 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
                 # only for naive loss scaling now
                 scaled_loss = loss * curr_scaling_factor
                 scaled_loss.backward()
+                stat = track_grad_stat(model=net)
+                grad_stats.extend(stat)
                 optimizer.step(scaling_factor=curr_scaling_factor)
             else:
                 loss.backward()
+                # track the gradient statistics
+                stat = track_grad_stat(model=net)
+                grad_stats.extend(stat)
+
                 optimizer.step()
             running_loss += loss.item()
 
@@ -205,6 +212,7 @@ def train(net, trainset, trainloader, testset, testloader, classes, args):
                 ave_loss = running_loss / print_log
                 loss_log.append(ave_loss)
                 tqdm.write('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, ave_loss))
+                print(stat)
                 running_loss = 0.0
     print('Finished Training')
 
@@ -275,4 +283,5 @@ def resnet18_cifar10(args):
     net = ResNet18(args)
     train(net, trainset, trainloader, testset, testloader, classes, args)
     test_model(net, trainset, trainloader, testset, testloader, classes, args)
+
 

@@ -25,5 +25,7 @@ def get_log_path(args):
 def perf_parser(log_path):
     pass
 
-def gradient_stat():
-    pass
+def track_grad_stat(model):
+    for name, p in model.named_parameters():
+        return [p.grad.min().item(), p.grad.max().item(), p.grad.mean().item()]
+
